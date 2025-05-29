@@ -1,10 +1,10 @@
 <script setup>
 import { onMounted, nextTick, ref } from 'vue'
-
-import imageToSvg from "./image-to-svg.js";
+import imageToSvg from './imageToSvg.json';
 
 const index = ref(0);
-const randomNumber = ref(Math.floor(Math.random() * (5 - 1 + 1)) + 1);
+const randomNumber = ref(Math.floor(Math.random() * (13 - 1 + 1)) + 1);
+
 let obj = imageToSvg[randomNumber.value];
 const svgToShow = ref(obj);
 
@@ -18,24 +18,24 @@ const lines = [
 	`Some take other routes out.\n
 	See things I do not see\n
 	Decide now is a good time as ever to start the journey home\n
-	Maybe they know something I don’t.`,
+	Maybe they know something I don't.`,
 	`When I see the people in front of me trudging forward 
 	I think:
-	\tYes I am going the right way ',
-	\tYes I am on track
-	\tYes there is something worth seeing ahead 
-	\tYes this view is worthy of the climb`,
+	Yes I am going the right way..
+	Yes I am on track..
+	Yes there is something worth seeing ahead..
+	Yes this view is worthy of the climb..`,
 	`When I see people speed past in the opposite direction I think: 
-	\tOh it’s getting late',
-	\tThey’re turning back and I’m not even halfway there ',
-	\tThere’s nothing really to see',
-	\tAt the end`,
+	Oh it's getting late',
+	They're turning back and I'm not even halfway there',
+	There's nothing really to see',
+	At the end`,
 	`I stopped a man on his way back
 	Asked him:
-	\tShould I keep going? Is it worth it? Or is it more of the same?
-	\tHe couldn’t tell me`,
+	Should I keep going? Is it worth it? Or is it more of the same?
+	He couldn’t tell me`,
 	`I kept going when I could
-	And turned back when I couldn’t
+	And turned back when I couldn't
 	Tried to be okay missing whatever people were still walking towards`,
 	`I saw the sunset over the city
 	It was beautiful
@@ -44,8 +44,7 @@ const lines = [
 	Plants that know exactly what to do
 	Which way to lean to catch the sunlight
 	Know what the sunlight will do for them`,
-	`How do they know which way to bend?
-	Do they follow the heat? The light?`
+	`How do they know which way to bend?`
 		
 ]
 
@@ -68,87 +67,85 @@ function placeBoxes() {
 
 	// Place first element (image) randomly
 	const imageBox = document.querySelector('.plant');
-	const image = imageBox.querySelector('.plant img');
-	image.onload = () => {
 
-		const imageRect = imageBox.getBoundingClientRect();
-		const maxImageX = Math.max(0, containerWidth - imageRect.width);
-		const maxImageY = Math.max(0, containerHeight - imageRect.height);
+	const imageRect = imageBox.getBoundingClientRect();
+	const maxImageX = Math.max(0, containerWidth - imageRect.width);
+	const maxImageY = Math.max(0, containerHeight - imageRect.height);
 
-		const imageRandomX = Math.floor(Math.random() * maxImageX);
-		const imageRandomY = Math.floor(Math.random() * maxImageY);
-		imageBox.style.left = `${imageRandomX}px`;
-		imageBox.style.top = `${imageRandomY}px`;
+	const imageRandomX = Math.floor(Math.random() * maxImageX);
+	const imageRandomY = Math.floor(Math.random() * maxImageY);
+	imageBox.style.left = `${imageRandomX}px`;
+	imageBox.style.top = `${imageRandomY}px`;
 
-		// Place text box randomly 
-		const textBox = document.querySelector('.text');
-		const textRect = textBox.getBoundingClientRect();
+	// Place text box randomly 
+	const textBox = document.querySelector('.text');
+	const textRect = textBox.getBoundingClientRect();
 
-		const imageBoxArea = {
-			left: imageRandomX,
-			top: imageRandomY,
-			right: imageRandomX + imageRect.width,
-			bottom: imageRandomY + imageRect.height,
-			width: imageRect.width,
-			height: imageRect.height
-		};
+	const imageBoxArea = {
+		left: imageRandomX,
+		top: imageRandomY,
+		right: imageRandomX + imageRect.width,
+		bottom: imageRandomY + imageRect.height,
+		width: imageRect.width,
+		height: imageRect.height
+	};
 
-		console.log(imageBoxArea, 'image box area');
-		// Define the available area for the text box, excluding the image box area
-		function getAvailableArea() {
-			const padding = 10; // add a little padding to avoid touching
-			const areas = [];
+	console.log(imageBoxArea, 'image box area');
+	// Define the available area for the text box, excluding the image box area
+	function getAvailableArea() {
+		const padding = 10; // add a little padding to avoid touching
+		const areas = [];
 
-			// Top area
-			if (imageBoxArea.top > 0) {
-				areas.push({
-					left: 0,
-					top: 0,
-					width: containerWidth,
-					height: imageBoxArea.top - padding
-				});
-			}
-			// Bottom area
-			if (imageBoxArea.bottom < containerHeight) {
-				areas.push({
-					left: 0,
-					top: imageBoxArea.bottom + padding,
-					width: containerWidth,
-					height: containerHeight - imageBoxArea.bottom - padding
-				});
-			}
-			// Left area
-			if (imageBoxArea.left > 0) {
-				areas.push({
-					left: 0,
-					top: imageBoxArea.top,
-					width: imageBoxArea.left - padding,
-					height: imageBoxArea.height
-				});
-			}
-			// Right area
-			if (imageBoxArea.right < containerWidth) {
-				areas.push({
-					left: imageBoxArea.right + padding,
-					top: 0,
-					width: containerWidth - imageBoxArea.right - padding,
-					height: imageBoxArea.height
-				});
-			}
-			console.log(areas, 'available areas before filter');
-			return areas.filter(a => a.width > textRect.width && a.height > textRect.height);
+		// Top area
+		if (imageBoxArea.top > 0) {
+			areas.push({
+				left: 0,
+				top: 0,
+				width: containerWidth,
+				height: imageBoxArea.top - padding
+			});
 		}
-
-		const availableAreas = getAvailableArea();
-		console.log(availableAreas, 'available areas after filter');
-		let area = availableAreas.length > 0 ? availableAreas[Math.floor(Math.random() * availableAreas.length)] : { left: 0, top: 0, width: containerWidth, height: containerHeight };
-
-		const textRandomX = area.left + Math.floor(Math.random() * (area.width - textRect.width));
-		const textRandomY = area.top + Math.floor(Math.random() * (area.height - textRect.height));
-
-		textBox.style.left = `${textRandomX}px`;
-		textBox.style.top = `${textRandomY}px`;
+		// Bottom area
+		if (imageBoxArea.bottom < containerHeight) {
+			areas.push({
+				left: 0,
+				top: imageBoxArea.bottom + padding,
+				width: containerWidth,
+				height: containerHeight - imageBoxArea.bottom - padding
+			});
+		}
+		// Left area
+		if (imageBoxArea.left > 0) {
+			areas.push({
+				left: 0,
+				top: imageBoxArea.top,
+				width: imageBoxArea.left - padding,
+				height: imageBoxArea.height
+			});
+		}
+		// Right area
+		if (imageBoxArea.right < containerWidth) {
+			areas.push({
+				left: imageBoxArea.right + padding,
+				top: 0,
+				width: containerWidth - imageBoxArea.right - padding,
+				height: imageBoxArea.height
+			});
+		}
+		console.log(areas, 'available areas before filter');
+		return areas.filter(a => a.width > textRect.width && a.height > textRect.height);
 	}
+
+	const availableAreas = getAvailableArea();
+	console.log(availableAreas, 'available areas after filter');
+	let area = availableAreas.length > 0 ? availableAreas[Math.floor(Math.random() * availableAreas.length)] : { left: 0, top: 0, width: containerWidth, height: containerHeight };
+
+	const textRandomX = area.left + Math.floor(Math.random() * (area.width - textRect.width));
+	const textRandomY = area.top + Math.floor(Math.random() * (area.height - textRect.height));
+
+	textBox.style.left = `${textRandomX}px`;
+	textBox.style.top = `${textRandomY}px`;
+	
 }
 
 class TracePathFollower {
@@ -298,6 +295,14 @@ function reset() {
 }
 
 onMounted(async () => {
+	const imageBox = document.querySelector('.plant');
+	imageBox.style.setProperty('--plant-img', `url('./images/${randomNumber.value}.png')`);
+	
+	const path = document.querySelector("path");
+	const bbox = path.getBBox();
+	const svg = document.querySelector("svg");
+	svg.setAttribute("viewBox", `${bbox.x} ${bbox.y} ${bbox.width} ${bbox.height}`);
+
 	await nextTick();
 	placeBoxes();
 	const line = document.getElementById("traceLine") || document.getElementById("tracePath");
@@ -314,30 +319,19 @@ onMounted(async () => {
 			{{ lines[index] }}
 			</p>
 		</section>
-		<section class="plant box">
-			<img :src="`./images/${randomNumber}.png`">
-		</section>
+		<section class="plant box"></section>
 		<section class="path">
-			<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-				<g v-if="svgToShow.type == 'line'">
-					<!-- Dashed background line -->
-					<line id="dashedLine" :x1="svgToShow.x1" :y1="svgToShow.y1" :x2="svgToShow.x2" :y2="svgToShow.y2"
-						stroke="black" stroke-width="1" stroke-dasharray="10 10" />
-
-					<!-- Solid path overlayed for trace effect -->
-					<line id="traceLine" :x1="svgToShow.x1" :y1="svgToShow.y1" :x2="svgToShow.x2" :y2="svgToShow.y2"
-						stroke="black" stroke-width="1" />
-				</g>
-				<g v-else>
+			<svg :viewBox="svgToShow.viewbox" xmlns="http://www.w3.org/2000/svg">
+				<g>
 					<!-- Dashed path always visible -->
-					<path id="dashedPath" :d="svgToShow.d" fill="none" stroke="black" stroke-width="1"
+					<path id="dashedPath" :d="svgToShow.d" fill="none" stroke="black" stroke-width="4"
 						stroke-dasharray="10 10" />
 
 					<!-- Solid overlay path (revealed as user traces) -->
-					<path id="tracePath" :d="svgToShow.d" fill="none" stroke="black" stroke-width="1" />
+					<path id="tracePath" :d="svgToShow.d" fill="none" stroke="black" stroke-width="4" />
 				</g>
 				<circle id="startIndicator" r="6" fill="rgba(243, 236, 120, 0.3)" style="filter: url(#glow)">
-					<animate attributeName="r" values="3;6;3" dur="3s" repeatCount="indefinite" />
+					<animate attributeName="r" values="10;20;10" dur="3s" repeatCount="indefinite" />
 				</circle>
 				<defs>
 					<filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
@@ -378,33 +372,40 @@ p {
 .text {
 	max-width: 30%;
 	max-height: 40%;
+	z-index: 999;
+	background-color: white;
+	padding: 1.2rem;
 }
 
 .plant {
-	height: 70%;
-
-}
-
-.path {
-	min-width: 12rem;
-	z-index: 1000;
-	padding: 0;
-}
-
-img {
-	max-height: 100%;
-	max-width: 100%;
-	width: 100%;
+	/* Use a CSS variable for the image, set from JS */
+	--plant-img: url('./images/1.png');
+	background-image: var(--plant-img);
+	background-size: contain;
+	background-repeat: no-repeat;
+	background-position: center;
+	min-height: 40rem;
+	min-width: 40rem;
 }
 
 svg {
 	overflow: visible;
+	min-height: 80vh;
 }
 
-svg line {
-	stroke: black;
-	stroke-width: 1;
+.path {
+	z-index: 1001;
 }
 
+.path #dashedPath {
+  stroke-dasharray: 10;
+  animation: dash 60s linear infinite;
+}
+
+@keyframes dash {
+  to {
+    stroke-dashoffset: 1000;
+  }
+}
 
 </style>
