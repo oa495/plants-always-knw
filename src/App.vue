@@ -3,7 +3,7 @@ import { onMounted, nextTick, ref } from 'vue'
 import imageToSvg from './imageToSvg.json';
 
 const index = ref(0);
-const randomNumber = ref(Math.floor(Math.random() * (13 - 1 + 1)) + 1);
+const randomNumber = ref(Math.floor(Math.random() * (13 - 1 + 1)) + 1); // Random number between 1 and 13
 
 let obj = imageToSvg[randomNumber.value];
 const svgToShow = ref(obj);
@@ -158,12 +158,7 @@ class TracePathFollower {
 		this.animationFrame = null;
 		this.finished = false;
 
-		// Convert line to path if needed
-		if (svgElement.tagName.toLowerCase() === 'line') {
-			this.path = this._convertLineToPath(svgElement);
-		} else {
-			this.path = svgElement;
-		}
+		this.path = svgElement;
 
 		this.svg = this.path.ownerSVGElement;
 		this.svgPoint = this.svg.createSVGPoint();
@@ -190,23 +185,6 @@ class TracePathFollower {
 		this.startIndicator = startIndicator;
 	}
 
-	_convertLineToPath(line) {
-		const x1 = line.getAttribute("x1");
-		const y1 = line.getAttribute("y1");
-		const x2 = line.getAttribute("x2");
-		const y2 = line.getAttribute("y2");
-
-		const newPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
-		const d = `M${x1},${y1} L${x2},${y2}`;
-		newPath.setAttribute("d", d);
-		newPath.setAttribute("stroke", line.getAttribute("stroke") || "black");
-		newPath.setAttribute("stroke-width", line.getAttribute("stroke-width") || "1");
-		newPath.setAttribute("fill", "none");
-		newPath.setAttribute("id", line.getAttribute("id") || "tracePath");
-
-		line.parentNode.replaceChild(newPath, line);
-		return newPath;
-	}
 
 	_bindEvents() {
 		document.addEventListener("mousemove", (e) => this._handleMouseMove(e));
@@ -257,13 +235,13 @@ class TracePathFollower {
 
 	_animate() {
 		if (this.progress < this.targetProgress) {
-			this.progress += (this.targetProgress - this.progress) * 0.2; // Smoothing factor
+			this.progress += (this.targetProgress - this.progress) * 0.4; // Smoothing factor
 			this.path.style.strokeDashoffset = this.pathLength - this.progress;
 		}
 		// Update the start indicator position
 
 		// Check if the path is finished
-		if (!this.finished && this.progress >= this.pathLength - 5) {
+		if (!this.finished && this.progress >= this.pathLength - 20) {
 			this.finished = true;
 			this.started = false;
 			this.progress = 0;
@@ -297,18 +275,94 @@ function reset() {
 onMounted(async () => {
 	const imageBox = document.querySelector('.plant');
 	imageBox.style.setProperty('--plant-img', `url('./images/${randomNumber.value}.png')`);
-	
-	const path = document.querySelector("path");
-	const bbox = path.getBBox();
-	const svg = document.querySelector("svg");
-	svg.setAttribute("viewBox", `${bbox.x} ${bbox.y} ${bbox.width} ${bbox.height}`);
+
 
 	await nextTick();
 	placeBoxes();
 	const line = document.getElementById("traceLine") || document.getElementById("tracePath");
 	if (!line) return;
-	new TracePathFollower(line, { threshold: 10 });
+	new TracePathFollower(line, { threshold: 5 });
 });
+
+function convertPathToRelative(d) {
+  const commands = d.match(/[a-df-zA-DF-Z][^a-df-zA-DF-Z]*/g);
+  if (!commands) return d;
+
+  let currentX = 0;
+  let currentY = 0;
+  let startX = 0;
+  let startY = 0;
+  const result = [];
+
+  for (let cmd of commands) {
+    const type = cmd[0];
+    const nums = cmd.slice(1).trim().split(/[\s,]+/).map(Number);
+
+    switch (type) {
+      case 'M':
+        {
+          const [x, y] = nums;
+          result.push(`m ${x - currentX} ${y - currentY}`);
+          currentX = x;
+          currentY = y;
+          startX = x;
+          startY = y;
+        }
+        break;
+
+      case 'L':
+        {
+          const [x, y] = nums;
+          result.push(`l ${x - currentX} ${y - currentY}`);
+          currentX = x;
+          currentY = y;
+        }
+        break;
+
+      case 'H':
+        {
+          const [x] = nums;
+          result.push(`h ${x - currentX}`);
+          currentX = x;
+        }
+        break;
+
+      case 'V':
+        {
+          const [y] = nums;
+          result.push(`v ${y - currentY}`);
+          currentY = y;
+        }
+        break;
+
+      case 'Z':
+      case 'z':
+        result.push('z');
+        currentX = startX;
+        currentY = startY;
+        break;
+
+      default:
+        // Add more command types (like C, Q, A) if needed
+        console.warn(`Unsupported command: ${type}`);
+        result.push(cmd);
+    }
+  }
+
+  return result.join(' ');
+}
+
+function getAspectRatio() {
+	const viewbox = svgToShow.value.viewbox;
+	const [x, y, width, height] = viewbox.split(' ').map(Number);
+	return `${width + 40} / ${height + 40}`;
+}
+
+function getViewBox() {
+	const viewbox = svgToShow.value.viewbox;
+	const [x, y, width, height] = viewbox.split(' ').map(Number);
+	return `${x} ${y} ${width + 40} ${height + 40}`;
+}
 
 </script>
 
@@ -319,19 +373,18 @@ onMounted(async () => {
 			{{ lines[index] }}
 			</p>
 		</section>
-		<section class="plant box"></section>
-		<section class="path">
-			<svg :viewBox="svgToShow.viewbox" xmlns="http://www.w3.org/2000/svg">
+		<section class="path" :style="{ aspectRatio: getAspectRatio() }">
+			<svg :viewBox="getViewBox()" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
 				<g>
 					<!-- Dashed path always visible -->
-					<path id="dashedPath" :d="svgToShow.d" fill="none" stroke="black" stroke-width="4"
+					<path id="dashedPath" :d="convertPathToRelative(svgToShow.d)" fill="none" stroke="black" stroke-width="4"
 						stroke-dasharray="10 10" />
 
 					<!-- Solid overlay path (revealed as user traces) -->
-					<path id="tracePath" :d="svgToShow.d" fill="none" stroke="black" stroke-width="4" />
+					<path id="tracePath" :d="convertPathToRelative(svgToShow.d)" fill="none" stroke="black" stroke-width="4" />
 				</g>
-				<circle id="startIndicator" r="6" fill="rgba(243, 236, 120, 0.3)" style="filter: url(#glow)">
-					<animate attributeName="r" values="10;20;10" dur="3s" repeatCount="indefinite" />
+				<circle id="startIndicator" r="10" fill="rgba(243, 236, 120, 0.4)" style="filter: url(#glow)">
+					<animate attributeName="r" values="10;20;10" dur="5s" repeatCount="indefinite" />
 				</circle>
 				<defs>
 					<filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
@@ -344,6 +397,7 @@ onMounted(async () => {
 				</defs>
 			</svg>
 		</section>
+		<section class="plant box"></section>
 	</main>
 </template>
 
@@ -390,11 +444,16 @@ p {
 
 svg {
 	overflow: visible;
-	min-height: 80vh;
+    width: 100%;
+    height: 100%;
+    display: block;
 }
 
 .path {
-	z-index: 1001;
+	max-height: 70%;                /* Allow container to scale */
+	min-width: 40%;
+    width: 100%; 
+	z-index: 10001;
 }
 
 .path #dashedPath {
