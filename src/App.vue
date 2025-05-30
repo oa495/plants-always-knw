@@ -1,12 +1,16 @@
 <script setup>
-import { onMounted, nextTick, ref } from 'vue'
+import { onMounted, nextTick, ref,  useTemplateRef } from 'vue'
 import imageToSvg from './imageToSvg.json';
 
 const index = ref(0);
-const randomNumber = ref(Math.floor(Math.random() * (13 - 1 + 1)) + 1); // Random number between 1 and 13
+let randomNumber = Math.floor(Math.random() * (13 - 1 + 1)) + 1;
+const visible = ref(true);
 
-let obj = imageToSvg[randomNumber.value];
-const svgToShow = ref(obj);
+let obj = imageToSvg[randomNumber];
+
+const nextSvgRef = useTemplateRef('nextSvg');
+const nextTextRef = useTemplateRef('nextText');
+const nextImgRef = useTemplateRef('nextImg');
 
 const lines = [
 	'At every point in the trail people are walking ahead of me deeper inside and walking in the opposite direction.',
@@ -48,104 +52,121 @@ const lines = [
 		
 ]
 
-function placeBoxes() {
+const currentView = ref({
+	'image': `./images/${randomNumber}.png`,
+	text: lines[index.value],
+	'svg': obj,
+});
 
-	const container = document.getElementById('container');
+const positions = ref({
+	'text': { left: '0px', top: '0px' },
+	'svg': { left: '0px', top: '0px' },
+	'image': { left: '0px', top: '0px' }
+});
+
+const nextView = ref({
+	'image': ``,
+	text: '',
+	'svg': {
+		d: '',
+		viewbox: '0 0 1000 1000'
+	}
+});
+
+const randPos = (el, containerWidth, containerHeight) => {
+	const rect = el.getBoundingClientRect();
+	const maxX = containerWidth - rect.width;
+	const maxY = containerHeight - rect.height;
+
+	return {
+		left: `${Math.floor(Math.random() * maxX)}px`,
+		top: `${Math.floor(Math.random() * maxY)}px`,
+		width: rect.width,
+		height: rect.height
+	};
+};
+
+function getAvailableArea(area, el, containerWidth, containerHeight) {
+	const padding = 10; // add a little padding to avoid touching
+	const areas = [];
+
+	// Top area
+	if (area.top > 0) {
+		areas.push({
+			left: 0,
+			top: 0,
+			width: containerWidth,
+			height: area.top - padding
+		});
+	}
+	// Bottom area
+	if (area.bottom < containerHeight) {
+		areas.push({
+			left: 0,
+			top: area.bottom + padding,
+			width: containerWidth,
+			height: containerHeight - area.bottom - padding
+		});
+	}
+	// Left area
+	if (area.left > 0) {
+		areas.push({
+			left: 0,
+			top: area.top,
+			width: area.left - padding,
+			height: area.height
+		});
+	}
+	// Right area
+	if (area.right < containerWidth) {
+		areas.push({
+			left: area.right + padding,
+			top: 0,
+			width: containerWidth - area.right - padding,
+			height: area.height
+		});
+	}
+	console.log(areas, 'available areas before filter');
+	return areas.filter(a => a.width > el.width && a.height > el.height);
+}
+
+function placeBoxes(lineContainer, textBox, imageBox, container) {
+	console.log('Placing boxes');
+	if (!container) {
+		container = document.getElementById('container');
+	}
 	const containerWidth = container.clientWidth;
 	const containerHeight = container.clientHeight;
 
-	const lineContainer = document.querySelector('.path');
-	const lineRect = lineContainer.getBoundingClientRect();
-	const maxLineX = Math.max(0, containerWidth - lineRect.width);
-	const maxLineY = Math.max(0, containerHeight - lineRect.height);
-
-	const lineRandomX = Math.floor(Math.random() * maxLineX);
-	const lineRandomY = Math.floor(Math.random() * maxLineY);
-
-	lineContainer.style.left = `${lineRandomX}px`;
-	lineContainer.style.top = `${lineRandomY}px`;
+	positions.value.svg = randPos(lineContainer, containerWidth, containerHeight);
 
 	// Place first element (image) randomly
-	const imageBox = document.querySelector('.plant');
+	const imagePos = randPos(imageBox);
+	positions.value.image = imagePos;
 
-	const imageRect = imageBox.getBoundingClientRect();
-	const maxImageX = Math.max(0, containerWidth - imageRect.width);
-	const maxImageY = Math.max(0, containerHeight - imageRect.height);
-
-	const imageRandomX = Math.floor(Math.random() * maxImageX);
-	const imageRandomY = Math.floor(Math.random() * maxImageY);
-	imageBox.style.left = `${imageRandomX}px`;
-	imageBox.style.top = `${imageRandomY}px`;
-
-	// Place text box randomly 
-	const textBox = document.querySelector('.text');
+	// Place text box not overlapping with the image box 
 	const textRect = textBox.getBoundingClientRect();
 
 	const imageBoxArea = {
-		left: imageRandomX,
-		top: imageRandomY,
-		right: imageRandomX + imageRect.width,
-		bottom: imageRandomY + imageRect.height,
-		width: imageRect.width,
-		height: imageRect.height
+		left: imagePos.left,
+		top: imagePos.top,
+		right: imagePos.left + imagePos.width,
+		bottom: imagePos.top + imagePos.height,
+		width: imagePos.width,
+		height: imagePos.height
 	};
 
-	console.log(imageBoxArea, 'image box area');
-	// Define the available area for the text box, excluding the image box area
-	function getAvailableArea() {
-		const padding = 10; // add a little padding to avoid touching
-		const areas = [];
-
-		// Top area
-		if (imageBoxArea.top > 0) {
-			areas.push({
-				left: 0,
-				top: 0,
-				width: containerWidth,
-				height: imageBoxArea.top - padding
-			});
-		}
-		// Bottom area
-		if (imageBoxArea.bottom < containerHeight) {
-			areas.push({
-				left: 0,
-				top: imageBoxArea.bottom + padding,
-				width: containerWidth,
-				height: containerHeight - imageBoxArea.bottom - padding
-			});
-		}
-		// Left area
-		if (imageBoxArea.left > 0) {
-			areas.push({
-				left: 0,
-				top: imageBoxArea.top,
-				width: imageBoxArea.left - padding,
-				height: imageBoxArea.height
-			});
-		}
-		// Right area
-		if (imageBoxArea.right < containerWidth) {
-			areas.push({
-				left: imageBoxArea.right + padding,
-				top: 0,
-				width: containerWidth - imageBoxArea.right - padding,
-				height: imageBoxArea.height
-			});
-		}
-		console.log(areas, 'available areas before filter');
-		return areas.filter(a => a.width > textRect.width && a.height > textRect.height);
-	}
-
-	const availableAreas = getAvailableArea();
+	const availableAreas = getAvailableArea(imageBoxArea, textRect, containerWidth, containerHeight);
 	console.log(availableAreas, 'available areas after filter');
 	let area = availableAreas.length > 0 ? availableAreas[Math.floor(Math.random() * availableAreas.length)] : { left: 0, top: 0, width: containerWidth, height: containerHeight };
 
 	const textRandomX = area.left + Math.floor(Math.random() * (area.width - textRect.width));
 	const textRandomY = area.top + Math.floor(Math.random() * (area.height - textRect.height));
 
-	textBox.style.left = `${textRandomX}px`;
-	textBox.style.top = `${textRandomY}px`;
-	
+	positions.value.text = {
+		left: `${textRandomX}px`,
+		top: `${textRandomY}px`
+	};
 }
 
 class TracePathFollower {
@@ -249,13 +270,9 @@ class TracePathFollower {
 			this.animationFrame = null;
 			this.path.style.strokeDasharray = this.pathLength;
 			this.path.style.strokeDashoffset = this.pathLength;
-			this.startIndicator.style.display = "block";
-			this._placeStartIndicator();
-			reset();
+			visible.value = false;
 
-			setTimeout(() => {
-				this.finished = false;
-			}, 500);
+			reset();
 		}
 		this.animationFrame = requestAnimationFrame(() => this._animate());
 	}
@@ -263,25 +280,47 @@ class TracePathFollower {
 
 function reset() {
 	index.value = (index.value + 1) % lines.length;
-	randomNumber.value = Math.floor(Math.random() * (5 - 1 + 1)) + 1;
-	svgToShow.value = imageToSvg[randomNumber.value];
-	// Reset the progress and target progress
-	const line = document.getElementById("traceLine") || document.getElementById("tracePath");
-	if (!line) return;
+	randomNumber = Math.floor(Math.random() * (13 - 1 + 1)) + 1;
+	obj = imageToSvg[randomNumber];
+	nextView.value = {
+		'image': `./images/${randomNumber}.png`,
+		text: lines[index.value],
+		'svg': obj,
+	};
+}
 
-	placeBoxes();
+async function placeNext() {
+	const offscreenContainer = document.querySelector('.offscreen');
+	placeBoxes(nextSvgRef.value, nextTextRef.value, nextImgRef.value, offscreenContainer);
+
+
+	// Destroy existing TracePathFollower instance if it exists
+	if (window._tracePathFollowerInstance && typeof window._tracePathFollowerInstance._animate === 'function') {
+		cancelAnimationFrame(window._tracePathFollowerInstance.animationFrame);
+		window._tracePathFollowerInstance = null;
+	}
+
+	currentView.value = nextView.value;
+	visible.value = true;
+
+	await nextTick();
+	const line = document.getElementById("tracePath");
+	if (line) {
+		window._tracePathFollowerInstance = new TracePathFollower(line, { threshold: 25 });
+	}
 }
 
 onMounted(async () => {
-	const imageBox = document.querySelector('.plant');
-	imageBox.style.setProperty('--plant-img', `url('./images/${randomNumber.value}.png')`);
-
-
 	await nextTick();
-	placeBoxes();
-	const line = document.getElementById("traceLine") || document.getElementById("tracePath");
+
+	const lineContainer = document.querySelector('.path');
+	const imageBox = document.querySelector('.plant');
+	const textBox = document.querySelector('.text');
+
+	placeBoxes(lineContainer, textBox, imageBox);
+	const line = document.getElementById("tracePath");
 	if (!line) return;
-	new TracePathFollower(line, { threshold: 5 });
+	new TracePathFollower(line, { threshold: 25 });
 });
 
 function convertPathToRelative(d) {
@@ -353,63 +392,113 @@ function convertPathToRelative(d) {
 }
 
 function getAspectRatio() {
-	const viewbox = svgToShow.value.viewbox;
+	const currentSvg = currentView.value.svg;
+	const viewbox = currentSvg.viewbox;
 	const [x, y, width, height] = viewbox.split(' ').map(Number);
 	return `${width + 40} / ${height + 40}`;
 }
 
-function getViewBox() {
-	const viewbox = svgToShow.value.viewbox;
-	const [x, y, width, height] = viewbox.split(' ').map(Number);
+function getViewBox(svg) {
+	const [x, y, width, height] = svg.viewbox.split(' ').map(Number);
 	return `${x} ${y} ${width + 40} ${height + 40}`;
 }
 
 </script>
 
 <template>
-	<main class="container" id="container">
-		<section class="text box">
-			<p :key="index">
-			{{ lines[index] }}
-			</p>
+	<Transition name="fade" @after-leave="placeNext" @after-enter="onEnter">
+		<main v-if="visible" class="container" id="container">
+			<section ref="text" class="text box" :style="{ left: positions.text.left, top: positions.text.top }">
+				<p>
+				{{ currentView.text }}
+				</p>
+			</section>
+			<section ref="svg" class="path" :style="{ left: positions.svg.left, top: positions.svg.top, aspectRatio: getAspectRatio() }">
+				<svg :viewBox="getViewBox(currentView.svg)" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+					<g>
+						<!-- Dashed path always visible -->
+						<path id="dashedPath" :d="convertPathToRelative(currentView.svg.d)" fill="none" stroke="black" stroke-width="4"
+							stroke-dasharray="10 10" />
+
+						<!-- Solid overlay path (revealed as user traces) -->
+						<path id="tracePath" :d="convertPathToRelative(currentView.svg.d)" fill="none" stroke="black" stroke-width="4" />
+					</g>
+					<circle id="startIndicator" r="10" fill="rgba(243, 236, 120, 0.4)" style="filter: url(#glow)">
+						<animate attributeName="r" values="10;20;10" dur="5s" repeatCount="indefinite" />
+					</circle>
+					<defs>
+						<filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+							<feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur" />
+							<feMerge>
+								<feMergeNode in="blur" />
+								<feMergeNode in="SourceGraphic" />
+							</feMerge>
+						</filter>
+					</defs>
+				</svg>
+			</section>
+			<section ref="img" class="plant box" :style="{ left: positions.image.left, top: positions.image.top }">
+				<img :src="currentView.image" alt="Plant Image" />
+			</section>
+		</main>
+	</Transition>
+	 <div class="offscreen" ref="stage">
+		<section ref="nextImg" class="plant box">
+			<img
+				:src="nextView.image"
+				alt=""
+			/>
 		</section>
-		<section class="path" :style="{ aspectRatio: getAspectRatio() }">
-			<svg :viewBox="getViewBox()" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+		<section ref="nextText" class="text box">
+			<p>{{ nextView.text }}</p>
+		</section>
+		<div ref="nextSvg" class="path" :style="{ aspectRatio: getAspectRatio() }">
+			<svg :viewBox="getViewBox(nextView.svg)" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
 				<g>
 					<!-- Dashed path always visible -->
-					<path id="dashedPath" :d="convertPathToRelative(svgToShow.d)" fill="none" stroke="black" stroke-width="4"
+					<path :d="convertPathToRelative(nextView.svg.d)" fill="none" stroke="black" stroke-width="4"
 						stroke-dasharray="10 10" />
 
 					<!-- Solid overlay path (revealed as user traces) -->
-					<path id="tracePath" :d="convertPathToRelative(svgToShow.d)" fill="none" stroke="black" stroke-width="4" />
+					<path :d="convertPathToRelative(nextView.svg.d)" fill="none" stroke="black" stroke-width="4" />
 				</g>
-				<circle id="startIndicator" r="10" fill="rgba(243, 236, 120, 0.4)" style="filter: url(#glow)">
-					<animate attributeName="r" values="10;20;10" dur="5s" repeatCount="indefinite" />
-				</circle>
-				<defs>
-					<filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-						<feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur" />
-						<feMerge>
-							<feMergeNode in="blur" />
-							<feMergeNode in="SourceGraphic" />
-						</feMerge>
-					</filter>
-				</defs>
 			</svg>
-		</section>
-		<section class="plant box"></section>
-	</main>
+		</div>
+	 </div>
 </template>
 
 <style scoped>
-.container {
-	position: relative;
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.8s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.offscreen {
+  visibility: hidden;
+  position: absolute;
+  top: -10000px;
+  left: -10000px;
+}
+
+.floating {
+  transition: all 0.5s ease;
+}
+
+.container, .offscreen {
 	width: 100%;
 	height: 100%;
 	max-width: 80vw;
 	max-height: 100vh;
 	overflow: hidden;
 	margin: auto;
+}
+
+.container {
+	position: relative;
 }
 
 section {
@@ -432,14 +521,14 @@ p {
 }
 
 .plant {
-	/* Use a CSS variable for the image, set from JS */
-	--plant-img: url('./images/1.png');
-	background-image: var(--plant-img);
-	background-size: contain;
-	background-repeat: no-repeat;
-	background-position: center;
-	min-height: 40rem;
-	min-width: 40rem;
+	height: 40rem;
+	width: 40rem;
+}
+
+.plant img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
 }
 
 svg {
