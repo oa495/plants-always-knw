@@ -15,42 +15,43 @@ const nextImgRef = useTemplateRef('nextImg');
 const lines = [
 	'At every point in the trail people are walking ahead of me deeper inside and walking in the opposite direction.',
 	'Towards the city, towards the exit, towards the familiar.',
-	`I cannot always see them all at once,\n
-	The people ahead of me\n
-	And the people who are leaving
-	`,
-	`Some take other routes out.\n
-	See things I do not see\n
-	Decide now is a good time as ever to start the journey home\n
-	Maybe they know something I don't.`,
-	`When I see the people in front of me trudging forward 
-	I think:
-	Yes I am going the right way..
-	Yes I am on track..
-	Yes there is something worth seeing ahead..
-	Yes this view is worthy of the climb..`,
-	`When I see people speed past in the opposite direction I think: 
-	Oh it's getting late',
-	They're turning back and I'm not even halfway there',
-	There's nothing really to see',
-	At the end`,
-	`I stopped a man on his way back
-	Asked him:
-	Should I keep going? Is it worth it? Or is it more of the same?
-	He couldn’t tell me`,
-	`I kept going when I could
-	And turned back when I couldn't
-	Tried to be okay missing whatever people were still walking towards`,
-	`I saw the sunset over the city
-	It was beautiful
-	And It was enough`,
-	`Today I look at the plants on my walk
-	Plants that know exactly what to do
-	Which way to lean to catch the sunlight
-	Know what the sunlight will do for them`,
-	`How do they know which way to bend?`
-		
-]
+	['I cannot always see them all at once', 'The people ahead of me', 'And the people who are leaving'],
+	['Some take other routes out,','See things I do not see', "Decide now is a good time as ever to start the journey home", "Maybe they know something I don't."],
+	[
+		'When I see the people in front of me trudging forward',
+		"I think:",
+		"Yes I am going the right way..",
+		"Yes I am on track..",
+		"Yes there is something worth seeing ahead..",
+		"Yes this view is worthy of the climb.."
+	],
+	[
+		"When I see people speed past in the opposite direction I think:",
+		"Oh it's getting late",
+		"They're turning back and I'm not even halfway there",
+		"Maybe there's nothing really to see",
+	],
+	[
+		"I stopped a man on his way back",
+		"Asked him:",
+		"Should I keep going? Is it worth it? Or is it more of the same?",
+		"He couldn’t tell me"
+	],
+	[
+		"I kept going when I could",
+		"And turned back when I couldn't",
+		"Tried to be okay missing whatever people were still walking towards"
+	],
+	[
+		"I saw the sunset over the city",
+		"It was beautiful",
+		"And it was enough"
+	],
+	[
+		"Today I look at the plants on my walk",
+		"Plants that know which way to lean to catch the sunlight",
+	],
+];
 
 const currentView = ref({
 	'image': `./images/${randomNumber}.png`,
@@ -409,8 +410,14 @@ function getViewBox(svg) {
 	<Transition name="fade" @after-leave="placeNext" @after-enter="onEnter">
 		<main v-if="visible" class="container" id="container">
 			<section ref="text" class="text box" :style="{ left: positions.text.left, top: positions.text.top }">
-				<p>
-				{{ currentView.text }}
+				<p v-if="Array.isArray(currentView.text)">
+					<span v-for="(line, index) in currentView.text" :key="index">
+						{{ line }} 
+						<br />
+					</span>
+				</p>
+				<p v-else>
+					{{ currentView.text }}
 				</p>
 			</section>
 			<section ref="svg" class="path" :style="{ left: positions.svg.left, top: positions.svg.top, aspectRatio: getAspectRatio() }">
